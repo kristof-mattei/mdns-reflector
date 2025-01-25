@@ -3,7 +3,7 @@ name = "mdns-reflector"
 # don't change this, it's updated before an actual build by update-version.sh
 version = "0.0.0-development"
 edition = "2021"
-rust-version = "1.84.0"
+rust-version = "1.85.0"
 authors = ["Kristof Mattei"]
 description = "mdns-reflector"
 license-file = "LICENSE"
@@ -38,7 +38,13 @@ clap = { version = "4.5.27", features = ["cargo", "derive", "string"] }
 color-eyre = { git = "https://github.com/eyre-rs/eyre", rev = "fc83cb8125bdde3a3b06e8b06c3405f6fc040a8a" }
 const_format = "0.2.34"
 libc = "0.2.169"
-socket2 = { version = "0.5.8" }
+tracing = "0.1.41"
+tracing-error = "0.2.1"
+tracing-subscriber = { version = "0.3.19", features = [
+    "env-filter",
+    "time",
+    "tracing-log",
+] }
 tokio = { version = "1.43.0", features = [
     "macros",
     "net",
@@ -47,13 +53,7 @@ tokio = { version = "1.43.0", features = [
     "time",
 ] }
 tokio-util = { version = "0.7.13", features = ["rt"] }
-tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.19", features = [
-    "env-filter",
-    "time",
-    "tracing-log",
-] }
-tracing-error = "0.2.1"
+socket2 = { version = "0.5.8" }
 
 # reqwest = { version = "0.11.5", features = ["json"] }
 # serde_json = "1.0.68"
