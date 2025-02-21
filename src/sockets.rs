@@ -1,14 +1,15 @@
+use std::ffi::CString;
+use std::mem::MaybeUninit;
 use std::net::{Ipv4Addr, SocketAddrV4};
 use std::os::fd::AsRawFd;
-use std::{ffi::CString, mem::MaybeUninit};
 
-use color_eyre::{eyre, Section};
-use libc::{ifreq, ioctl, sockaddr_in, IFNAMSIZ, IP_PKTINFO, SIOCGIFADDR, SIOCGIFNETMASK, SOL_IP};
+use color_eyre::{Section, eyre};
+use libc::{IFNAMSIZ, IP_PKTINFO, SIOCGIFADDR, SIOCGIFNETMASK, SOL_IP, ifreq, ioctl, sockaddr_in};
 use socket2::{Domain, Type};
 use tokio::net::UdpSocket;
-use tracing::{event, Level};
+use tracing::{Level, event};
 
-use crate::{unix, MDNS_ADDR, MDNS_PORT};
+use crate::{MDNS_ADDR, MDNS_PORT, unix};
 
 #[derive(Debug)]
 pub(crate) struct InterfaceSocket {
