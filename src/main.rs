@@ -5,25 +5,25 @@ mod sockets;
 mod unix;
 
 use std::env;
-use std::fs::{remove_file, File};
+use std::fs::{File, remove_file};
 use std::io::{BufRead, BufReader, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::process::exit;
 use std::sync::Arc;
 use std::time::Duration;
 
-use cli::{parse_cli, Config};
+use cli::{Config, parse_cli};
 use color_eyre::eyre;
-use libc::{chdir, fork, getpid, kill, pid_t, setsid, signal, umask, SIGCHLD, SIGHUP, SIG_IGN};
+use libc::{SIG_IGN, SIGCHLD, SIGHUP, chdir, fork, getpid, kill, pid_t, setsid, signal, umask};
 use reflector::reflect;
 use sockets::{create_recv_sock, create_send_sock};
 use tokio::time::timeout;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
-use tracing::{event, Level};
+use tracing::{Level, event};
+use tracing_subscriber::EnvFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::EnvFilter;
 
 // TODO this should come from cargo
 const PACKAGE: &str = env!("CARGO_PKG_NAME");

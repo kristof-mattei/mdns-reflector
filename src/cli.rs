@@ -2,7 +2,7 @@ use std::env;
 use std::ffi::OsString;
 use std::path::PathBuf;
 
-use clap::{command, Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, Command, command};
 use color_eyre::eyre;
 use const_format::concatcp;
 
