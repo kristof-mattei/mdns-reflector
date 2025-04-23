@@ -53,7 +53,7 @@ tokio = { version = "1.44.2", features = [
     "signal",
     "time",
 ] }
-tokio-util = { version = "0.7.14", features = ["rt"] }
+tokio-util = { version = "0.7.15", features = ["rt"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = [
     "env-filter",
