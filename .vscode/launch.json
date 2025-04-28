@@ -32,8 +32,8 @@
                 "RUST_BACKTRACE": "1",
                 "RUST_LOG": "ERROR,mdns_reflector=ERROR"
             },
-            "internalConsoleOptions": "openOnSessionStart",
-            "terminal": "console"
+            "internalConsoleOptions": "neverOpen",
+            "terminal": "integrated"
         },
         {
             "type": "lldb",
@@ -56,8 +56,8 @@
                 "RUST_BACKTRACE": "1",
                 "RUST_LOG": "DEBUG,mdns_reflector=TRACE"
             },
-            "internalConsoleOptions": "openOnSessionStart",
-            "terminal": "console"
+            "internalConsoleOptions": "neverOpen",
+            "terminal": "integrated"
         },
         {
             "type": "lldb",
@@ -81,8 +81,8 @@
                 "RUST_BACKTRACE": "1",
                 "RUST_LOG": "DEBUG,mdns_reflector=TRACE"
             },
-            "internalConsoleOptions": "openOnSessionStart",
-            "terminal": "console"
+            "internalConsoleOptions": "neverOpen",
+            "terminal": "integrated"
         },
         {
             "type": "lldb",
@@ -106,8 +106,8 @@
                 "RUST_BACKTRACE": "1",
                 "RUST_LOG": "DEBUG,mdns_reflector=TRACE"
             },
-            "internalConsoleOptions": "openOnSessionStart",
-            "terminal": "console"
+            "internalConsoleOptions": "neverOpen",
+            "terminal": "integrated"
         }
     ]
 }
