@@ -42,7 +42,7 @@ so_bindtodevice = []
 
 [dependencies]
 clap = { version = "4.5.37", features = ["cargo", "derive", "string"] }
-color-eyre = { git = "https://github.com/eyre-rs/eyre", rev = "c4ee249f7c51dc6452e8704ae8d117d90d6eeebc" }
+color-eyre = "0.6.4"
 const_format = "0.2.34"
 libc = "0.2.172"
 socket2 = { version = "0.5.9" }
@@ -55,22 +55,13 @@ tokio = { version = "1.44.2", features = [
 ] }
 tokio-util = { version = "0.7.15", features = ["rt"] }
 tracing = "0.1.41"
+tracing-error = "0.2.1"
 tracing-subscriber = { version = "0.3.19", features = [
     "env-filter",
     "time",
     "tracing-log",
 ] }
-tracing-error = "0.2.1"
 
-# reqwest = { version = "0.11.5", features = ["json"] }
-# serde_json = "1.0.68"
-# serde = { version = "1.0.130", features = ["derive"] }
-# futures = "0.3.17"
-# tokio = { version = "1.12.0", features = ["full"] }
-# log = "0.4.14"
-# env_logger = "0.9.0"
-# serde_yaml = "0.8.21"
-# clap = { version = "3.0.14", features = ["derive"] }
 
 # OpenSSL for musl
 # [target.'cfg(all(any(target_arch="x86_64", target_arch="aarch64"), target_os="linux", target_env="musl"))'.dependencies]
