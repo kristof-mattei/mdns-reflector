@@ -46,7 +46,7 @@ color-eyre = "0.6.4"
 const_format = "0.2.34"
 libc = "0.2.172"
 socket2 = { version = "0.5.9" }
-tokio = { version = "1.44.2", features = [
+tokio = { version = "1.45.0", features = [
     "macros",
     "net",
     "rt-multi-thread",
