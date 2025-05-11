@@ -41,7 +41,7 @@ ip_pktinfo = []
 so_bindtodevice = []
 
 [dependencies]
-clap = { version = "4.5.37", features = ["cargo", "derive", "string"] }
+clap = { version = "4.5.38", features = ["cargo", "derive", "string"] }
 color-eyre = "0.6.4"
 const_format = "0.2.34"
 libc = "0.2.172"
