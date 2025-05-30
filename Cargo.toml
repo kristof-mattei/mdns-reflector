@@ -46,7 +46,7 @@ so_bindtodevice = []
 
 [dependencies]
 clap = { version = "4.5.39", features = ["cargo", "derive", "string"] }
-color-eyre = "0.6.4"
+color-eyre = "0.6.5"
 const_format = "0.2.34"
 libc = "0.2.172"
 socket2 = { version = "0.5.10" }
