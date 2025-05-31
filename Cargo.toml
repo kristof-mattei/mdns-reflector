@@ -40,13 +40,15 @@ let_underscore_drop = { level = "deny", priority = 127 }
 non_ascii_idents = { level = "deny", priority = 127 }
 
 [features]
-coverage = []
+default = []
 ip_pktinfo = []
 so_bindtodevice = []
+tokio-console = ["dep:console-subscriber"]
 
 [dependencies]
 clap = { version = "4.5.39", features = ["cargo", "derive", "string"] }
 color-eyre = "0.6.5"
+console-subscriber = { version = "0.4.1", optional = true }
 const_format = "0.2.34"
 libc = "0.2.172"
 socket2 = { version = "0.5.10" }
@@ -65,4 +67,3 @@ tracing-subscriber = { version = "0.3.19", features = [
     "time",
     "tracing-log",
 ] }
-

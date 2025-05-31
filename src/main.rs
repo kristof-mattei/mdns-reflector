@@ -4,7 +4,7 @@ mod signal_handlers;
 mod sockets;
 mod unix;
 
-use std::env;
+use std::env::{self, VarError};
 use std::fs::{File, remove_file};
 use std::io::{BufRead, BufReader, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
@@ -13,6 +13,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use cli::{Config, parse_cli};
+use color_eyre::config::HookBuilder;
 use color_eyre::eyre;
 use libc::{SIG_IGN, SIGCHLD, SIGHUP, chdir, fork, getpid, kill, pid_t, setsid, signal, umask};
 use reflector::reflect;
@@ -22,6 +23,7 @@ use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use tracing::{Level, event};
 use tracing_subscriber::EnvFilter;
+use tracing_subscriber::Layer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
@@ -33,21 +35,44 @@ const MDNS_PORT: u16 = 5353;
 
 const BROADCAST_MDNS: SocketAddr = SocketAddr::V4(SocketAddrV4::new(MDNS_ADDR, MDNS_PORT));
 
+fn build_default_filter() -> EnvFilter {
+    EnvFilter::builder()
+        .parse(format!("INFO,{}=TRACE", env!("CARGO_CRATE_NAME")))
+        .expect("Default filter should always work")
+}
+
+fn init_tracing() -> Result<(), eyre::Report> {
+    let (filter, filter_parsing_error) = match env::var(EnvFilter::DEFAULT_ENV) {
+        Ok(user_directive) => match EnvFilter::builder().parse(user_directive) {
+            Ok(filter) => (filter, None),
+            Err(error) => (build_default_filter(), Some(eyre::Report::new(error))),
+        },
+        Err(VarError::NotPresent) => (build_default_filter(), None),
+        Err(error @ VarError::NotUnicode(_)) => {
+            (build_default_filter(), Some(eyre::Report::new(error)))
+        },
+    };
+
+    let registry = tracing_subscriber::registry();
+
+    #[cfg(feature = "tokio-console")]
+    let registry = registry.with(console_subscriber::ConsoleLayer::builder().spawn());
+
+    registry
+        .with(tracing_subscriber::fmt::layer().with_filter(filter))
+        .with(tracing_error::ErrorLayer::default())
+        .try_init()?;
+
+    filter_parsing_error.map_or(Ok(()), Err)
+}
+
 fn main() -> Result<(), eyre::Report> {
-    color_eyre::config::HookBuilder::default()
-        .capture_span_trace_by_default(false)
+    HookBuilder::default()
+        .capture_span_trace_by_default(true)
+        .display_env_section(false)
         .install()?;
 
-    let rust_log_value = env::var(EnvFilter::DEFAULT_ENV)
-        .unwrap_or_else(|_| format!("INFO,{}=TRACE", env!("CARGO_CRATE_NAME")));
-
-    // set up logger
-    // from_env defaults to RUST_LOG
-    tracing_subscriber::registry()
-        .with(EnvFilter::builder().parse(rust_log_value).unwrap())
-        .with(tracing_subscriber::fmt::layer())
-        .with(tracing_error::ErrorLayer::default())
-        .init();
+    init_tracing()?;
 
     // initialize the runtime
     let rt = tokio::runtime::Builder::new_multi_thread()
