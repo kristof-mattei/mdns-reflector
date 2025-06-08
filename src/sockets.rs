@@ -110,14 +110,8 @@ pub(crate) fn create_send_sock(
     // #ifdef SO_BINDTODEVICE
     // do we support any OS that doesn't have `SO_BINDTODEVICE?`
     socket.bind_device(Some(ifname.as_bytes())).map_err(|err| {
-        event!(
-            Level::ERROR,
-            ?err,
-            ifname,
-            "send setsockopt(SO_BINDTODEVICE)"
-        );
-
-        err
+        eyre::Report::new(err)
+            .with_note(|| format!("send setsockopt(SO_BINDTODEVICE) failed on {}", ifname))
     })?;
     // #endif
 
@@ -164,12 +158,12 @@ pub(crate) fn create_send_sock(
         network: interface_network,
     };
 
-    println!(
-        "dev {} addr {} mask {} net {}",
-        interface_socket.name,
-        interface_socket.address,
-        interface_socket.mask,
-        interface_socket.network
+    event!(
+        Level::INFO,
+        dev = %interface_socket.name,
+        addr = %interface_socket.address,
+        mask = %interface_socket.mask,
+        net = %interface_socket.network
     );
 
     Ok(interface_socket)
