@@ -5,10 +5,11 @@ mod sockets;
 mod unix;
 
 use std::env::{self, VarError};
+use std::ffi::CString;
 use std::fs::{File, remove_file};
 use std::io::{BufRead, BufReader, Write};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
-use std::process::exit;
+use std::process;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -18,14 +19,15 @@ use color_eyre::eyre;
 use libc::{SIG_IGN, SIGCHLD, SIGHUP, chdir, fork, getpid, kill, pid_t, setsid, signal, umask};
 use reflector::reflect;
 use sockets::{create_recv_sock, create_send_sock};
+use syslog_tracing::{Facility, Options};
 use tokio::time::timeout;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use tracing::{Level, event};
-use tracing_subscriber::EnvFilter;
-use tracing_subscriber::Layer;
 use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::reload::{self};
 use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{EnvFilter, Layer, Registry};
 
 // TODO this should come from cargo
 const PACKAGE: &str = env!("CARGO_PKG_NAME");
@@ -41,7 +43,17 @@ fn build_default_filter() -> EnvFilter {
         .expect("Default filter should always work")
 }
 
-fn init_tracing() -> Result<(), eyre::Report> {
+fn init_tracing() -> std::result::Result<
+    tracing_subscriber::reload::Handle<
+        std::boxed::Box<
+            dyn tracing_subscriber::Layer<tracing_subscriber::Registry>
+                + std::marker::Send
+                + std::marker::Sync,
+        >,
+        Registry,
+    >,
+    color_eyre::Report,
+> {
     let (filter, filter_parsing_error) = match env::var(EnvFilter::DEFAULT_ENV) {
         Ok(user_directive) => match EnvFilter::builder().parse(user_directive) {
             Ok(filter) => (filter, None),
@@ -53,17 +65,18 @@ fn init_tracing() -> Result<(), eyre::Report> {
         },
     };
 
-    let registry = tracing_subscriber::registry();
+    let (stdout_layer, handle) = reload::Layer::new(tracing_subscriber::fmt::layer().boxed());
 
-    #[cfg(feature = "tokio-console")]
-    let registry = registry.with(console_subscriber::ConsoleLayer::builder().spawn());
+    let layers = vec![
+        #[cfg(feature = "tokio-console")]
+        console_subscriber::ConsoleLayer::builder().spawn().boxed(),
+        stdout_layer.with_filter(filter).boxed(),
+        tracing_error::ErrorLayer::default().boxed(),
+    ];
 
-    registry
-        .with(tracing_subscriber::fmt::layer().with_filter(filter))
-        .with(tracing_error::ErrorLayer::default())
-        .try_init()?;
+    tracing_subscriber::registry().with(layers).try_init()?;
 
-    filter_parsing_error.map_or(Ok(()), Err)
+    filter_parsing_error.map_or(Ok(handle), Err)
 }
 
 fn main() -> Result<(), eyre::Report> {
@@ -72,17 +85,8 @@ fn main() -> Result<(), eyre::Report> {
         .display_env_section(false)
         .install()?;
 
-    init_tracing()?;
+    let handle = init_tracing()?;
 
-    // initialize the runtime
-    let rt = tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()?;
-
-    rt.block_on(start_tasks())
-}
-
-async fn start_tasks() -> Result<(), eyre::Error> {
     let (config, interfaces) = parse_cli().inspect_err(|error| {
         // this prints the error in color and exits
         // can't do anything else until
@@ -92,11 +96,6 @@ async fn start_tasks() -> Result<(), eyre::Error> {
             clap_error.exit();
         }
     })?;
-
-    let config = Arc::new(config);
-
-    // unsure what to do here for now
-    // openlog(PACKAGE, LOG_PID | LOG_CONS, LOG_DAEMON);
 
     let cancellation_token = CancellationToken::new();
 
@@ -109,9 +108,44 @@ async fn start_tasks() -> Result<(), eyre::Error> {
             return Ok(());
         }
     } else {
-        daemonize(&config, &cancellation_token);
+        daemonize(&config);
+
+        let identity = CString::new(PACKAGE).unwrap();
+
+        let syslog = syslog_tracing::Syslog::new(
+            identity,
+            Options::LOG_PID | Options::LOG_CONS,
+            Facility::Daemon,
+        )
+        .unwrap();
+
+        // switch to syslog logging
+        handle.reload(
+            tracing_subscriber::fmt::layer()
+                .with_ansi(false)
+                .without_time()
+                .with_writer(syslog)
+                .boxed(),
+        )?;
     }
 
+    // initialize the runtime
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?;
+
+    rt.block_on(start_tasks(
+        cancellation_token,
+        Arc::new(config),
+        interfaces,
+    ))
+}
+
+async fn start_tasks(
+    cancellation_token: CancellationToken,
+    config: Arc<Config>,
+    interfaces: Vec<String>,
+) -> Result<(), eyre::Error> {
     // create receiving socket
     let server_socket = create_recv_sock().map_err(|err| {
         event!(Level::ERROR, ?err, "unable to create server socket");
@@ -186,6 +220,8 @@ async fn start_tasks() -> Result<(), eyre::Error> {
                 pid_file = ?config.pid_file,
                 "Failed to remove pid_file, manual deletion required",
             );
+        } else {
+            event!(Level::INFO, "pid_file cleaned up");
         }
     }
 
@@ -194,31 +230,25 @@ async fn start_tasks() -> Result<(), eyre::Error> {
     Ok(())
 }
 
-fn daemonize(config: &Config, _cancellation_token: &CancellationToken) {
-    // pid_t running_pid;
+fn daemonize(config: &Config) {
     let pid: pid_t = unsafe { fork() };
 
     if pid < 0 {
         let err = std::io::Error::last_os_error();
         event!(Level::ERROR, ?err, "fork()");
 
-        exit(1);
+        process::exit(1);
     }
 
     // exit parent process
     if pid > 0 {
-        exit(0);
+        process::exit(0);
     }
-
-    // let closure = |signal| {
-    //     mdns_reflector_shutdown(signal, &cancellation_token);
-    // };
 
     // signals
     unsafe {
         signal(SIGCHLD, SIG_IGN);
         signal(SIGHUP, SIG_IGN);
-        // signal(SIGTERM, closure as usize);
 
         setsid();
         umask(0o0027);
@@ -241,7 +271,7 @@ fn daemonize(config: &Config, _cancellation_token: &CancellationToken) {
     let running_pid = already_running(config);
     if let Some(running_pid) = running_pid {
         event!(Level::ERROR, "already running as pid {}", running_pid);
-        exit(1);
+        process::exit(1);
     } else if let Err(err) = write_pidfile(config) {
         event!(
             Level::ERROR,
@@ -249,7 +279,7 @@ fn daemonize(config: &Config, _cancellation_token: &CancellationToken) {
             "unable to write pid file {:?}",
             config.pid_file
         );
-        exit(1);
+        process::exit(1);
     }
 }
 
@@ -268,11 +298,6 @@ fn already_running(config: &Config) -> Option<i32> {
     }
 
     None
-}
-
-#[expect(unused)]
-fn mdns_reflector_shutdown(_signal: i32, cancellation_token: &CancellationToken) {
-    cancellation_token.cancel();
 }
 
 fn write_pidfile(config: &Config) -> Result<(), eyre::Report> {

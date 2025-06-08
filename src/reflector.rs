@@ -79,4 +79,5 @@ pub(crate) async fn reflect(
     }
 
     // server_socket and sockets are dropped here
+    event!(Level::INFO, "Shutting down...");
 }

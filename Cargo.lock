@@ -738,6 +738,7 @@ dependencies = [
  "const_format",
  "libc",
  "socket2",
+ "syslog-tracing",
  "tokio",
  "tokio-util",
  "tracing",
@@ -1143,6 +1144,17 @@ name = "sync_wrapper"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0bf256ce5efdfa370213c1dabab5935a12e49f2c58d15e9eac2870d3b4f27263"
+
+[[package]]
+name = "syslog-tracing"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d349bc2df408b4bf656709a29643641cef7f1795d708f88b105c626a8f64f6e4"
+dependencies = [
+ "libc",
+ "tracing-core",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "thread_local"

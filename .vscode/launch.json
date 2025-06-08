@@ -22,15 +22,15 @@
             "args": [
                 "-f",
                 "-v",
-                // "eth0",
-                // "eth10"
-                "enp4s0",
-                "br-611646b6fc6e"
+                "eth0",
+                "eth10"
+                // "enp4s0",
+                // "br-611646b6fc6e"
             ],
             "cwd": "${workspaceFolder}",
             "env": {
                 "RUST_BACKTRACE": "1",
-                "RUST_LOG": "ERROR,mdns_reflector=ERROR"
+                "RUST_LOG": "ERROR,mdns_reflector=TRACE"
             },
             "internalConsoleOptions": "neverOpen",
             "terminal": "integrated"
