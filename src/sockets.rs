@@ -1,13 +1,14 @@
-use std::ffi::CString;
 use std::mem::MaybeUninit;
 use std::net::{Ipv4Addr, SocketAddrV4};
 use std::os::fd::AsRawFd;
+use std::{ffi::CString, ptr::addr_of};
 
-use color_eyre::{Section, eyre};
+use color_eyre::Section;
+use color_eyre::eyre::{self, Context};
 use libc::{IFNAMSIZ, IP_PKTINFO, SIOCGIFADDR, SIOCGIFNETMASK, SOL_IP, ifreq, ioctl, sockaddr_in};
 use socket2::{Domain, Type};
 use tokio::net::UdpSocket;
-use tracing::{Level, event};
+use tracing::{Level, event, instrument};
 
 use crate::{MDNS_ADDR, MDNS_PORT, unix};
 
@@ -25,57 +26,40 @@ pub(crate) struct InterfaceSocket {
     pub(crate) network: Ipv4Addr,
 }
 
+#[instrument]
 pub(crate) fn create_recv_sock() -> Result<UdpSocket, eyre::Error> {
-    let socket =
-        socket2::Socket::new(Domain::IPV4, Type::DGRAM, None /* IPPROTO_IP */).map_err(|err| {
-            event!(Level::ERROR, ?err, "recv socket()");
+    let socket = socket2::Socket::new(Domain::IPV4, Type::DGRAM, None /* IPPROTO_IP */)
+        .wrap_err("recv socket()")?;
 
-            err
-        })?;
+    socket
+        .set_nonblocking(true)
+        .wrap_err("recv setsockopt(SO_NONBLOCK)")?;
 
-    socket.set_nonblocking(true).map_err(|err| {
-        event!(Level::ERROR, ?err, "recv setsockopt(SO_NONBLOCK)");
-
-        err
-    })?;
-
-    socket.set_reuse_address(true).map_err(|err| {
-        event!(Level::ERROR, ?err, "recv setsockopt(SO_REUSEADDR)");
-
-        err
-    })?;
+    socket
+        .set_reuse_address(true)
+        .wrap_err("recv setsockopt(SO_REUSEADDR)")?;
 
     // bind to an address
     let server_addr = SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, MDNS_PORT);
-    socket.bind(&server_addr.into()).map_err(|err| {
-        event!(Level::ERROR, ?err, "recv bind()");
-
-        err
-    })?;
+    socket.bind(&server_addr.into()).wrap_err("recv bind()")?;
 
     // enable loopback in case someone else needs the data
-    socket.set_multicast_loop_v4(true).map_err(|err| {
-        event!(Level::ERROR, ?err, "recv setsockopt(IP_MULTICAST_LOOP)");
+    socket
+        .set_multicast_loop_v4(true)
+        .wrap_err("recv setsockopt(IP_MULTICAST_LOOP)")?;
 
-        err
-    })?;
-
-    // #ifdef IP_PKTINFO
     // do we support any OS that doesn't have `IP_PKTINFO?`
     unsafe {
-        unix::setsockopt(&socket, SOL_IP, IP_PKTINFO, true).map_err(|err| {
-            event!(Level::ERROR, ?err, "recv setsockopt(IP_PKTINFO)");
-
-            err
-        })?;
+        unix::setsockopt(&socket, SOL_IP, IP_PKTINFO, true)
+            .wrap_err("recv setsockopt(IP_PKTINFO)")?;
     }
-    // #endif
 
     Ok(UdpSocket::from_std(socket.into())?)
 }
 
+#[instrument(skip(recv_sock), fields(recv_sock = %recv_sock.local_addr().unwrap(), ifname = %ifname))]
 pub(crate) fn create_send_sock(
-    recv_sockfd: &UdpSocket,
+    recv_sock: &UdpSocket,
     ifname: String,
 ) -> Result<InterfaceSocket, eyre::Error> {
     let (interface_address, interface_mask) = get_interface_details(&ifname)?;
@@ -86,69 +70,40 @@ pub(crate) fn create_send_sock(
         // IPPROTO_IP
         None,
     )
-    .map_err(|err| {
-        event!(Level::ERROR, ?err, ifname, "send socket()");
-
-        err
-    })?;
+    .wrap_err_with(|| format!("send socket() failed on {}", &ifname))?;
 
     // compute network (address & mask)
     let interface_network = interface_address & interface_mask;
 
-    socket.set_nonblocking(true).map_err(|err| {
-        event!(Level::ERROR, ?err, ifname, "send setsockopt(SO_NONBLOCK)");
+    socket
+        .set_nonblocking(true)
+        .wrap_err_with(|| format!("send setsockopt(SO_NONBLOCK) failed on {}", &ifname))?;
 
-        err
-    })?;
+    socket
+        .set_reuse_address(true)
+        .wrap_err_with(|| format!("send setsockopt(SO_REUSEADDR) failed on {}", &ifname))?;
 
-    socket.set_reuse_address(true).map_err(|err| {
-        event!(Level::ERROR, ?err, ifname, "send setsockopt(SO_REUSEADDR)");
-
-        err
-    })?;
-
-    // #ifdef SO_BINDTODEVICE
     // do we support any OS that doesn't have `SO_BINDTODEVICE?`
-    socket.bind_device(Some(ifname.as_bytes())).map_err(|err| {
-        eyre::Report::new(err)
-            .with_note(|| format!("send setsockopt(SO_BINDTODEVICE) failed on {}", ifname))
-    })?;
-    // #endif
+    socket
+        .bind_device(Some(ifname.as_bytes()))
+        .wrap_err_with(|| format!("send setsockopt(SO_BINDTODEVICE) failed on {}", &ifname))?;
 
     // bind to an address
     let server_addr = SocketAddrV4::new(interface_address, MDNS_PORT);
 
-    socket.bind(&server_addr.into()).map_err(|err| {
-        event!(Level::ERROR, ?err, ifname, "send bind()");
-
-        err
-    })?;
+    socket
+        .bind(&server_addr.into())
+        .wrap_err_with(|| format!("send bind() failed on {}", &ifname))?;
 
     // add membership to receiving socket
-    recv_sockfd
+    recv_sock
         .join_multicast_v4(MDNS_ADDR, interface_address)
-        .map_err(|err| {
-            event!(
-                Level::ERROR,
-                ?err,
-                ifname,
-                "recv setsockopt(IP_ADD_MEMBERSHIP)"
-            );
-
-            err
-        })?;
+        .wrap_err_with(|| format!("recv setsockopt(IP_ADD_MEMBERSHIP) failed on {}", &ifname))?;
 
     // enable loopback in case someone else needs the data
-    socket.set_multicast_loop_v4(true).map_err(|err| {
-        event!(
-            Level::ERROR,
-            ?err,
-            ifname,
-            "send setsockopt(IP_MULTICAST_LOOP)"
-        );
-
-        err
-    })?;
+    socket
+        .set_multicast_loop_v4(true)
+        .wrap_err_with(|| format!("send setsockopt()SO_BINDTODEVICE failed on {}", &ifname))?;
 
     let interface_socket = InterfaceSocket {
         name: ifname,
@@ -176,11 +131,7 @@ fn get_interface_details(ifname: &str) -> Result<(Ipv4Addr, Ipv4Addr), eyre::Rep
         // IPPROTO_IP
         None,
     )
-    .map_err(|err| {
-        event!(Level::ERROR, ?err, ifname, "send socket()");
-
-        err
-    })?;
+    .wrap_err("send socket()")?;
 
     let mut ifr = unsafe { MaybeUninit::<ifreq>::zeroed().assume_init() };
 
@@ -196,9 +147,7 @@ fn get_interface_details(ifname: &str) -> Result<(Ipv4Addr, Ipv4Addr), eyre::Rep
         std::ptr::copy_nonoverlapping(c_ifname.as_ptr(), ifr.ifr_name.as_mut_ptr(), len);
     };
 
-    let s = (&raw mut ifr.ifr_ifru).cast::<sockaddr_in>();
-
-    let if_addr = &mut (unsafe { &mut *s }).sin_addr;
+    let sockaddr_in = addr_of!(ifr.ifr_ifru).cast::<sockaddr_in>();
 
     #[cfg(target_env = "musl")]
     let siocgifnetmask: i32 = SIOCGIFNETMASK.try_into().unwrap();
@@ -208,7 +157,7 @@ fn get_interface_details(ifname: &str) -> Result<(Ipv4Addr, Ipv4Addr), eyre::Rep
     // get netmask
     let interface_mask = unsafe {
         if 0 == ioctl(socket.as_raw_fd(), siocgifnetmask, &ifr) {
-            let mask_in_network_order = if_addr.s_addr;
+            let mask_in_network_order = (*sockaddr_in).sin_addr.s_addr;
 
             Ipv4Addr::from(u32::from_be(mask_in_network_order))
         } else {
@@ -224,7 +173,7 @@ fn get_interface_details(ifname: &str) -> Result<(Ipv4Addr, Ipv4Addr), eyre::Rep
     // .. and interface address
     let interface_address = unsafe {
         if 0 == ioctl(socket.as_raw_fd(), siocgifaddr, &ifr) {
-            let addr_in_network_order = if_addr.s_addr;
+            let addr_in_network_order = (*sockaddr_in).sin_addr.s_addr;
 
             Ipv4Addr::from(u32::from_be(addr_in_network_order))
         } else {

@@ -82,6 +82,7 @@ fn init_tracing() -> std::result::Result<
 fn main() -> Result<(), eyre::Report> {
     HookBuilder::default()
         .capture_span_trace_by_default(true)
+        .display_location_section(true)
         .display_env_section(false)
         .install()?;
 
@@ -124,6 +125,7 @@ fn main() -> Result<(), eyre::Report> {
             tracing_subscriber::fmt::layer()
                 .with_ansi(false)
                 .without_time()
+                .with_level(false)
                 .with_writer(syslog)
                 .boxed(),
         )?;
@@ -134,34 +136,52 @@ fn main() -> Result<(), eyre::Report> {
         .enable_all()
         .build()?;
 
-    rt.block_on(start_tasks(
+    if let Err(err) = rt.block_on(start_tasks(
         cancellation_token,
         Arc::new(config),
         interfaces,
-    ))
+    )) {
+        event!(Level::ERROR, ?err);
+    }
+
+    Ok(())
 }
 
 async fn start_tasks(
     cancellation_token: CancellationToken,
     config: Arc<Config>,
     interfaces: Vec<String>,
-) -> Result<(), eyre::Error> {
+) -> Result<(), eyre::Report> {
     // create receiving socket
-    let server_socket = create_recv_sock().map_err(|err| {
-        event!(Level::ERROR, ?err, "unable to create server socket");
+    let server_socket = match create_recv_sock() {
+        Ok(server_socket) => server_socket,
+        Err(err) => {
+            event!(
+                Level::ERROR,
+                ?err,
+                "Unable to create send socket on interface"
+            );
 
-        err
-    })?;
+            return Ok(());
+        },
+    };
 
     let mut sockets = Vec::with_capacity(interfaces.len());
 
     // create sending sockets
     for interface in interfaces {
-        let send_socket = create_send_sock(&server_socket, interface).map_err(|err| {
-            event!(Level::ERROR, ?err, "unable to create socket for interface");
+        let send_socket = match create_send_sock(&server_socket, interface) {
+            Ok(send_socket) => send_socket,
+            Err(err) => {
+                event!(
+                    Level::ERROR,
+                    ?err,
+                    "Unable to create send socket on interface"
+                );
 
-            err
-        })?;
+                return Ok(());
+            },
+        };
 
         sockets.push(send_socket);
     }
@@ -217,11 +237,11 @@ async fn start_tasks(
             event!(
                 Level::ERROR,
                 ?err,
-                pid_file = ?config.pid_file,
-                "Failed to remove pid_file, manual deletion required",
+                pid_file = %config.pid_file.display(),
+                "Failed to remove pid_file, manual deletion required"
             );
         } else {
-            event!(Level::INFO, "pid_file cleaned up");
+            event!(Level::INFO, pid_file = %config.pid_file.display(), "pid_file cleaned up");
         }
     }
 
