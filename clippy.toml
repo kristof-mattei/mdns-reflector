@@ -1,9 +1,0 @@
-allowed-duplicate-crates = [
-    "base64",
-    "hashbrown",
-    "indexmap",
-    "tower",
-    "regex-automata",
-    "regex-syntax",
-    "windows-sys",
-]
