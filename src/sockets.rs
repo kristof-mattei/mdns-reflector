@@ -1,7 +1,8 @@
+use std::ffi::CString;
 use std::mem::MaybeUninit;
 use std::net::{Ipv4Addr, SocketAddrV4};
 use std::os::fd::AsRawFd;
-use std::{ffi::CString, ptr::addr_of};
+use std::ptr::addr_of;
 
 use color_eyre::Section;
 use color_eyre::eyre::{self, Context};

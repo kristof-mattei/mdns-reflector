@@ -194,7 +194,7 @@ async fn start_tasks(
         task_tracker.spawn(reflect(
             server_socket,
             sockets,
-            config.clone(),
+            Arc::clone(&config),
             cancellation_token,
         ));
     }
