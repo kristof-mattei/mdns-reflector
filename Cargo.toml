@@ -1,15 +1,15 @@
 [package]
 name = "mdns-reflector"
-# don't change this, it's updated before an actual build by update-version.sh
 version = "0.0.0-development"
 edition = "2024"
 rust-version = "1.88.0"
 authors = ["Kristof Mattei"]
 description = "mdns-reflector"
-license-file = "LICENSE"
+license = "MIT"
 categories = ["network"]
 keywords = ["mdns", "reflect", "docker"]
 repository = "https://github.com/kristof-mattei/mdns-reflector"
+include = ["src/**", "/LICENSE", "/LICENSE-*"]
 
 [lints.clippy]
 # don't stop from compiling / running
