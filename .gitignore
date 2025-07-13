@@ -1,10 +1,10 @@
+/node_modules
+/profiling
+/reports
 /target
 
-.cr-release-packages
-.cr-index
+# samply output
+/profile.json
 
-node_modules/
-reports/
-profiling/
-NEXTVERSION
-mdns-repeater
+# build of the c version
+/mdns-repeater
