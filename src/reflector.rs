@@ -9,23 +9,26 @@ use crate::cli::Config;
 use crate::sockets::InterfaceSocket;
 use crate::{BROADCAST_MDNS, PACKET_SIZE};
 
-pub(crate) async fn reflect(
+pub async fn reflect(
     server_socket: UdpSocket,
     sockets: Vec<InterfaceSocket>,
     config: Arc<Config>,
     cancellation_token: CancellationToken,
 ) {
-    let mut buffer = vec![0u8; PACKET_SIZE];
+    let mut buffer = vec![0_u8; PACKET_SIZE];
 
     loop {
-        let (recvsize, from_addr) = tokio::select! {
-            () = cancellation_token.cancelled() => { break; },
-            result = server_socket.recv_from(&mut buffer) => {
-                match result {
-                    Ok(ok) => ok,
-                    Err(err) => {
-                        event!(Level::ERROR, ?err, "recv()");
-                        continue;
+        #[expect(clippy::pattern_type_mismatch, reason = "From tokio macro")]
+        let (recvsize, from_addr) = {
+            tokio::select! {
+                () = cancellation_token.cancelled() => { break; },
+                result = server_socket.recv_from(&mut buffer) => {
+                    match result {
+                        Ok(ok) => ok,
+                        Err(err) => {
+                            event!(Level::ERROR, ?err, "recv()");
+                            continue;
+                        }
                     }
                 }
             }

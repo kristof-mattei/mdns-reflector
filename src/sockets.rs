@@ -1,11 +1,11 @@
 use std::ffi::CString;
 use std::mem::MaybeUninit;
 use std::net::{Ipv4Addr, SocketAddrV4};
-use std::os::fd::AsRawFd;
+use std::os::fd::AsRawFd as _;
 use std::ptr::addr_of;
 
-use color_eyre::Section;
-use color_eyre::eyre::{self, Context};
+use color_eyre::Section as _;
+use color_eyre::eyre::{self, Context as _};
 use libc::{IFNAMSIZ, IP_PKTINFO, SIOCGIFADDR, SIOCGIFNETMASK, SOL_IP, ifreq, ioctl, sockaddr_in};
 use socket2::{Domain, Type};
 use tokio::net::UdpSocket;
@@ -14,21 +14,21 @@ use tracing::{Level, event, instrument};
 use crate::{MDNS_ADDR, MDNS_PORT, unix};
 
 #[derive(Debug)]
-pub(crate) struct InterfaceSocket {
+pub struct InterfaceSocket {
     /// interface name
-    pub(crate) name: String,
+    pub name: String,
     /// socket
-    pub(crate) socket: UdpSocket,
+    pub socket: UdpSocket,
     /// interface address
-    pub(crate) address: Ipv4Addr,
+    pub address: Ipv4Addr,
     /// interface mask
-    pub(crate) mask: Ipv4Addr,
+    pub mask: Ipv4Addr,
     /// interface network (computed)
-    pub(crate) network: Ipv4Addr,
+    pub network: Ipv4Addr,
 }
 
 #[instrument]
-pub(crate) fn create_recv_sock() -> Result<UdpSocket, eyre::Error> {
+pub fn create_recv_sock() -> Result<UdpSocket, eyre::Error> {
     let socket = socket2::Socket::new(Domain::IPV4, Type::DGRAM, None /* IPPROTO_IP */)
         .wrap_err("recv socket()")?;
 
@@ -50,6 +50,7 @@ pub(crate) fn create_recv_sock() -> Result<UdpSocket, eyre::Error> {
         .wrap_err("recv setsockopt(IP_MULTICAST_LOOP)")?;
 
     // do we support any OS that doesn't have `IP_PKTINFO?`
+    // SAFETY: libc call
     unsafe {
         unix::setsockopt(&socket, SOL_IP, IP_PKTINFO, true)
             .wrap_err("recv setsockopt(IP_PKTINFO)")?;
@@ -59,7 +60,7 @@ pub(crate) fn create_recv_sock() -> Result<UdpSocket, eyre::Error> {
 }
 
 #[instrument(skip(recv_sock), fields(recv_sock = %recv_sock.local_addr().unwrap(), ifname = %ifname))]
-pub(crate) fn create_send_sock(
+pub fn create_send_sock(
     recv_sock: &UdpSocket,
     ifname: String,
 ) -> Result<InterfaceSocket, eyre::Error> {
@@ -134,6 +135,7 @@ fn get_interface_details(ifname: &str) -> Result<(Ipv4Addr, Ipv4Addr), eyre::Rep
     )
     .wrap_err("send socket()")?;
 
+    // SAFETY: all zeroes is valid for `ifreq`
     let mut ifr = unsafe { MaybeUninit::<ifreq>::zeroed().assume_init() };
 
     let c_ifname = CString::new(ifname)
@@ -144,6 +146,8 @@ fn get_interface_details(ifname: &str) -> Result<(Ipv4Addr, Ipv4Addr), eyre::Rep
         IFNAMSIZ - 1, // leave one to ensure there's a null terminator
     );
 
+    // SAFETY: We can write up to IFNAMSIZ in `ifr.name`.
+    // SAFETY: We don't write the last byte to ensure `ifr.ifr_name` is '\0' terminated.
     unsafe {
         std::ptr::copy_nonoverlapping(c_ifname.as_ptr(), ifr.ifr_name.as_mut_ptr(), len);
     };
@@ -156,9 +160,11 @@ fn get_interface_details(ifname: &str) -> Result<(Ipv4Addr, Ipv4Addr), eyre::Rep
     let siocgifnetmask = SIOCGIFNETMASK;
 
     // get netmask
-    let interface_mask = unsafe {
-        if 0 == ioctl(socket.as_raw_fd(), siocgifnetmask, &ifr) {
-            let mask_in_network_order = (*sockaddr_in).sin_addr.s_addr;
+    let interface_mask = {
+        // SAFETY: libc call
+        if 0 == unsafe { ioctl(socket.as_raw_fd(), siocgifnetmask, &ifr) } {
+            // SAFETY: we tested ioctl's return value
+            let mask_in_network_order = unsafe { (*sockaddr_in).sin_addr.s_addr };
 
             Ipv4Addr::from(u32::from_be(mask_in_network_order))
         } else {
@@ -172,9 +178,11 @@ fn get_interface_details(ifname: &str) -> Result<(Ipv4Addr, Ipv4Addr), eyre::Rep
     let siocgifaddr = SIOCGIFADDR;
 
     // .. and interface address
-    let interface_address = unsafe {
-        if 0 == ioctl(socket.as_raw_fd(), siocgifaddr, &ifr) {
-            let addr_in_network_order = (*sockaddr_in).sin_addr.s_addr;
+    let interface_address = {
+        // SAFETY: libc call
+        if 0 == unsafe { ioctl(socket.as_raw_fd(), siocgifaddr, &ifr) } {
+            // SAFETY: we tested ioctl's return value
+            let addr_in_network_order = unsafe { (*sockaddr_in).sin_addr.s_addr };
 
             Ipv4Addr::from(u32::from_be(addr_in_network_order))
         } else {
