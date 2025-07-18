@@ -7,7 +7,7 @@ mod unix;
 use std::env::{self, VarError};
 use std::ffi::CString;
 use std::fs::{File, remove_file};
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead as _, BufReader, Write as _};
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::process;
 use std::sync::Arc;
@@ -24,10 +24,10 @@ use tokio::time::timeout;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use tracing::{Level, event};
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::reload::{self};
-use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{EnvFilter, Layer, Registry};
+use tracing_subscriber::layer::SubscriberExt as _;
+use tracing_subscriber::reload;
+use tracing_subscriber::util::SubscriberInitExt as _;
+use tracing_subscriber::{EnvFilter, Layer as _, Registry};
 
 // TODO this should come from cargo
 const PACKAGE: &str = env!("CARGO_PKG_NAME");
@@ -204,19 +204,22 @@ async fn start_tasks(
     // * ctrl + c (SIGINT)
     // * a message on the shutdown channel, sent either by the server task or
     // another task when they complete (which means they failed)
-    tokio::select! {
-        _ = signal_handlers::wait_for_sigint() => {
-            // we completed because ...
-            event!(Level::WARN, message = "CTRL+C detected, stopping all tasks");
-        },
-        _ = signal_handlers::wait_for_sigterm() => {
-            // we completed because ...
-            event!(Level::WARN, message = "Sigterm detected, stopping all tasks");
-        },
-        () = cancellation_token.cancelled() => {
-            event!(Level::WARN, "Underlying task stopped, stopping all others tasks");
-        },
-    };
+    #[expect(clippy::pattern_type_mismatch, reason = "From tokio macro")]
+    {
+        tokio::select! {
+            _ = signal_handlers::wait_for_sigint() => {
+                // we completed because ...
+                event!(Level::WARN, message = "CTRL+C detected, stopping all tasks");
+            },
+            _ = signal_handlers::wait_for_sigterm() => {
+                // we completed because ...
+                event!(Level::WARN, message = "Sigterm detected, stopping all tasks");
+            },
+            () = cancellation_token.cancelled() => {
+                event!(Level::WARN, "Underlying task stopped, stopping all others tasks");
+            },
+        };
+    }
 
     cancellation_token.cancel();
 
@@ -232,7 +235,12 @@ async fn start_tasks(
     }
 
     // remove pid file if it belongs to us
-    if already_running(&config).is_some_and(|pid| pid == unsafe { getpid() }) {
+    if let Some(pid) = already_running(&config)
+        && {
+            // SAFETY: libc call
+            pid == unsafe { getpid() }
+        }
+    {
         if let Err(err) = remove_file(&config.pid_file) {
             event!(
                 Level::ERROR,
@@ -250,7 +258,9 @@ async fn start_tasks(
     Ok(())
 }
 
+#[expect(clippy::exit, reason = "Daemonize failed, cleanup unneeded")]
 fn daemonize(config: &Config) {
+    // SAFETY: libc call
     let pid: pid_t = unsafe { fork() };
 
     if pid < 0 {
@@ -266,12 +276,29 @@ fn daemonize(config: &Config) {
     }
 
     // signals
+
+    // SAFETY: libc call
     unsafe {
         signal(SIGCHLD, SIG_IGN);
-        signal(SIGHUP, SIG_IGN);
+    }
 
+    // SAFETY: libc call
+    unsafe {
+        signal(SIGHUP, SIG_IGN);
+    }
+
+    // SAFETY: libc call
+    unsafe {
         setsid();
+    }
+
+    // SAFETY: libc call
+    unsafe {
         umask(0o0027);
+    }
+
+    // SAFETY: libc call
+    unsafe {
         chdir(c"/".as_ptr());
     }
 
@@ -289,8 +316,11 @@ fn daemonize(config: &Config) {
 
     // check for pid file
     let running_pid = already_running(config);
+
     if let Some(running_pid) = running_pid {
         event!(Level::ERROR, "already running as pid {}", running_pid);
+
+        #[expect(clippy::exit, reason = "Daemonize failed, cleanup unneeded")]
         process::exit(1);
     } else if let Err(err) = write_pidfile(config) {
         event!(
@@ -299,7 +329,11 @@ fn daemonize(config: &Config) {
             "unable to write pid file {:?}",
             config.pid_file
         );
+
+        #[expect(clippy::exit, reason = "Daemonize failed, cleanup unneeded")]
         process::exit(1);
+    } else {
+        // Daemonize succesful
     }
 }
 
@@ -313,6 +347,7 @@ fn already_running(config: &Config) -> Option<i32> {
 
     let pid = line.parse::<i32>().ok()?;
 
+    // SAFETY: libc call
     if 0 == unsafe { kill(pid, 0) } {
         return Some(pid);
     }
@@ -323,6 +358,7 @@ fn already_running(config: &Config) -> Option<i32> {
 fn write_pidfile(config: &Config) -> Result<(), eyre::Report> {
     let mut file = File::create(&config.pid_file)?;
 
+    // SAFETY: libc call
     let pid = unsafe { getpid() };
 
     file.write_fmt(format_args!("{}", pid))?;

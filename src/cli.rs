@@ -79,20 +79,20 @@ fn build_clap_matcher() -> Command {
         )
 }
 
-pub(crate) struct Config {
-    pub(crate) foreground: bool,
+pub struct Config {
+    pub foreground: bool,
 
-    pub(crate) verbose: bool,
+    pub verbose: bool,
 
     // if (optarg[0] != '/')
     // 	log_message(LOG_ERR, "pid file path must be absolute");
     // else
     // 	pid_file = optarg;
     // break;
-    pub(crate) pid_file: PathBuf,
+    pub pid_file: PathBuf,
 }
 
-pub(crate) fn parse_cli() -> Result<(Config, Vec<String>), eyre::Error> {
+pub fn parse_cli() -> Result<(Config, Vec<String>), eyre::Error> {
     parse_cli_from(env::args_os())
 }
 
