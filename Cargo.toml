@@ -86,7 +86,6 @@ inline_asm_x86_att_syntax = { level = "deny", priority = 127 }
 # integer_division = { level = "deny", priority = 127 }
 # Debatable
 # integer_division_remainder_used = { level = "deny", priority = 127 }
-iter_over_hash_type = { level = "deny", priority = 127 }
 large_include_file = { level = "deny", priority = 127 }
 let_underscore_must_use = { level = "deny", priority = 127 }
 let_underscore_untyped = { level = "deny", priority = 127 }
@@ -117,7 +116,6 @@ precedence_bits = { level = "deny", priority = 127 }
 # print_stderr = { level = "deny", priority = 127 }
 # Debatable
 # print_stdout = { level = "deny", priority = 127 }
-pub_use = { level = "deny", priority = 127 }
 pub_without_shorthand = { level = "deny", priority = 127 }
 rc_buffer = { level = "deny", priority = 127 }
 rc_mutex = { level = "deny", priority = 127 }
@@ -150,13 +148,9 @@ unnecessary_safety_comment = { level = "deny", priority = 127 }
 unnecessary_safety_doc = { level = "deny", priority = 127 }
 unnecessary_self_imports = { level = "deny", priority = 127 }
 unneeded_field_pattern = { level = "deny", priority = 127 }
-# No, to signify invariants
-# unreachable = { level = "deny", priority = 127 }
 unseparated_literal_suffix = { level = "deny", priority = 127 }
 unused_result_ok = { level = "deny", priority = 127 }
 unused_trait_names = { level = "deny", priority = 127 }
-# No, we separate fatal from recoverable
-# unwrap_in_result = { level = "deny", priority = 127 }
 verbose_file_reads = { level = "deny", priority = 127 }
 wildcard_enum_match_arm = { level = "deny", priority = 127 }
 
