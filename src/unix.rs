@@ -32,7 +32,6 @@ pub unsafe fn setsockopt<T>(
     let payload = (&raw const payload).cast::<libc::c_void>();
 
     #[expect(
-        clippy::as_conversions,
         clippy::cast_possible_truncation,
         reason = "It this doesn't fit we got bigger problems"
     )]
