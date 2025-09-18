@@ -25,9 +25,8 @@ use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use tracing::{Level, event};
 use tracing_subscriber::layer::SubscriberExt as _;
-use tracing_subscriber::reload;
 use tracing_subscriber::util::SubscriberInitExt as _;
-use tracing_subscriber::{EnvFilter, Layer as _, Registry};
+use tracing_subscriber::{EnvFilter, Layer as _, Registry, reload};
 
 // TODO this should come from cargo
 const PACKAGE: &str = env!("CARGO_PKG_NAME");
@@ -205,13 +204,21 @@ async fn start_tasks(
     // * a message on the shutdown channel, sent either by the server task or
     // another task when they complete (which means they failed)
     tokio::select! {
-        _ = signal_handlers::wait_for_sigint() => {
-            // we completed because ...
-            event!(Level::WARN, message = "CTRL+C detected, stopping all tasks");
+        result = signal_handlers::wait_for_sigterm() => {
+            if let Err(error) = result {
+                event!(Level::ERROR, ?error, "Failed to register SIGERM handler, aborting");
+            } else {
+                // we completed because ...
+                event!(Level::WARN, "Sigterm detected, stopping all tasks");
+            }
         },
-        _ = signal_handlers::wait_for_sigterm() => {
-            // we completed because ...
-            event!(Level::WARN, message = "Sigterm detected, stopping all tasks");
+        result = signal_handlers::wait_for_sigint() => {
+            if let Err(error) = result {
+                event!(Level::ERROR, ?error, "Failed to register CTRL+C handler, aborting");
+            } else {
+                // we completed because ...
+                event!(Level::WARN, "CTRL+C detected, stopping all tasks");
+            }
         },
         () = cancellation_token.cancelled() => {
             event!(Level::WARN, "Underlying task stopped, stopping all others tasks");
