@@ -19,7 +19,9 @@ pub async fn reflect(
 
     loop {
         let (recvsize, from_addr) = tokio::select! {
-            () = cancellation_token.cancelled() => { break; },
+            () = cancellation_token.cancelled() => {
+                break;
+            },
             result = server_socket.recv_from(&mut buffer) => {
                 match result {
                     Ok(ok) => ok,
