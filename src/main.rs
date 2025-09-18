@@ -204,21 +204,18 @@ async fn start_tasks(
     // * ctrl + c (SIGINT)
     // * a message on the shutdown channel, sent either by the server task or
     // another task when they complete (which means they failed)
-    #[expect(clippy::pattern_type_mismatch, reason = "From tokio macro")]
-    {
-        tokio::select! {
-            _ = signal_handlers::wait_for_sigint() => {
-                // we completed because ...
-                event!(Level::WARN, message = "CTRL+C detected, stopping all tasks");
-            },
-            _ = signal_handlers::wait_for_sigterm() => {
-                // we completed because ...
-                event!(Level::WARN, message = "Sigterm detected, stopping all tasks");
-            },
-            () = cancellation_token.cancelled() => {
-                event!(Level::WARN, "Underlying task stopped, stopping all others tasks");
-            },
-        };
+    tokio::select! {
+        _ = signal_handlers::wait_for_sigint() => {
+            // we completed because ...
+            event!(Level::WARN, message = "CTRL+C detected, stopping all tasks");
+        },
+        _ = signal_handlers::wait_for_sigterm() => {
+            // we completed because ...
+            event!(Level::WARN, message = "Sigterm detected, stopping all tasks");
+        },
+        () = cancellation_token.cancelled() => {
+            event!(Level::WARN, "Underlying task stopped, stopping all others tasks");
+        },
     }
 
     cancellation_token.cancel();

@@ -18,17 +18,14 @@ pub async fn reflect(
     let mut buffer = vec![0_u8; PACKET_SIZE];
 
     loop {
-        #[expect(clippy::pattern_type_mismatch, reason = "From tokio macro")]
-        let (recvsize, from_addr) = {
-            tokio::select! {
-                () = cancellation_token.cancelled() => { break; },
-                result = server_socket.recv_from(&mut buffer) => {
-                    match result {
-                        Ok(ok) => ok,
-                        Err(err) => {
-                            event!(Level::ERROR, ?err, "recv()");
-                            continue;
-                        }
+        let (recvsize, from_addr) = tokio::select! {
+            () = cancellation_token.cancelled() => { break; },
+            result = server_socket.recv_from(&mut buffer) => {
+                match result {
+                    Ok(ok) => ok,
+                    Err(err) => {
+                        event!(Level::ERROR, ?err, "recv()");
+                        continue;
                     }
                 }
             }
