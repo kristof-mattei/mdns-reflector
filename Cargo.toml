@@ -21,7 +21,7 @@ tokio-console = ["dep:console-subscriber"]
 clap = { version = "4.5.48", features = ["cargo", "derive", "string"] }
 color-eyre = "0.6.5"
 console-subscriber = { version = "0.4.1", optional = true }
-const_format = "0.2.34"
+const_format = "0.2.35"
 libc = "0.2.176"
 socket2 = { version = "0.6.0", features = ["all"] }
 syslog-tracing = "0.3.1"
