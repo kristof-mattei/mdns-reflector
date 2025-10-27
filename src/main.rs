@@ -36,6 +36,9 @@ const MDNS_PORT: u16 = 5353;
 
 const BROADCAST_MDNS: SocketAddr = SocketAddr::V4(SocketAddrV4::new(MDNS_ADDR, MDNS_PORT));
 
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 fn build_default_filter() -> EnvFilter {
     EnvFilter::builder()
         .parse(format!("INFO,{}=TRACE", env!("CARGO_CRATE_NAME")))
