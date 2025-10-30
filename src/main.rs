@@ -1,3 +1,4 @@
+mod build_env;
 mod cli;
 mod reflector;
 mod signal_handlers;
@@ -28,8 +29,14 @@ use tracing_subscriber::layer::SubscriberExt as _;
 use tracing_subscriber::util::SubscriberInitExt as _;
 use tracing_subscriber::{EnvFilter, Layer as _, Registry, reload};
 
+use crate::build_env::get_build_env;
+
 // TODO this should come from cargo
 const PACKAGE: &str = env!("CARGO_PKG_NAME");
+#[expect(
+    clippy::decimal_literal_representation,
+    reason = "This is the number used everywhere"
+)]
 const PACKET_SIZE: usize = 65536;
 const MDNS_ADDR: Ipv4Addr = Ipv4Addr::new(224, 0, 0, 251);
 const MDNS_PORT: u16 = 5353;
@@ -81,6 +88,21 @@ fn init_tracing() -> std::result::Result<
     filter_parsing_error.map_or(Ok(handle), Err)
 }
 
+fn print_header() {
+    const NAME: &str = env!("CARGO_PKG_NAME");
+    const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+    let build_env = get_build_env();
+
+    println!(
+        "{} v{} - built for {} ({})",
+        NAME,
+        VERSION,
+        build_env.get_target(),
+        build_env.get_target_cpu().unwrap_or("base cpu variant"),
+    );
+}
+
 fn main() -> Result<(), eyre::Report> {
     HookBuilder::default()
         .capture_span_trace_by_default(true)
@@ -100,21 +122,7 @@ fn main() -> Result<(), eyre::Report> {
         }
     })?;
 
-    let name = env!("CARGO_PKG_NAME");
-    let version = env!("CARGO_PKG_VERSION");
-
-    event!(
-        Level::INFO,
-        "{} v{} - built for {}-{}",
-        name,
-        version,
-        std::env::var("TARGETARCH")
-            .as_deref()
-            .unwrap_or("unknown-arch"),
-        std::env::var("TARGETVARIANT")
-            .as_deref()
-            .unwrap_or("base variant")
-    );
+    print_header();
 
     let cancellation_token = CancellationToken::new();
 
