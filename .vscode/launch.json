@@ -5,19 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug executable 'mdns-reflector'",
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'mdns-reflector'",
             "cargo": {
-                "args": [
-                    "build",
-                    "--bin=mdns-reflector",
-                    "--package=mdns-reflector"
-                ],
-                "filter": {
-                    "name": "mdns-reflector",
-                    "kind": "bin"
-                }
+                "args": ["run", "--bin=mdns-reflector"]
             },
             "args": [
                 "-f",
@@ -27,31 +19,21 @@
                 // "enp4s0",
                 // "br-611646b6fc6e"
             ],
-            "cwd": "${workspaceFolder}",
             "env": {
                 "RUST_BACKTRACE": "1",
-                "RUST_LOG": "ERROR,mdns_reflector=TRACE"
+                "RUST_LOG": "DEBUG,mdns_reflector=TRACE"
             },
             "internalConsoleOptions": "neverOpen",
             "terminal": "integrated"
         },
         {
-            "type": "lldb",
-            "request": "launch",
             "name": "Debug executable 'mdns-reflector' --help",
+            "type": "lldb",
+            "request": "launch",
             "cargo": {
-                "args": [
-                    "build",
-                    "--bin=mdns-reflector",
-                    "--package=mdns-reflector"
-                ],
-                "filter": {
-                    "name": "mdns-reflector",
-                    "kind": "bin"
-                }
+                "args": ["run", "--bin=mdns-reflector"]
             },
-            "args": ["--help"],
-            "cwd": "${workspaceFolder}",
+            "args": ["-h"],
             "env": {
                 "RUST_BACKTRACE": "1",
                 "RUST_LOG": "DEBUG,mdns_reflector=TRACE"
@@ -60,23 +42,12 @@
             "terminal": "integrated"
         },
         {
-            "type": "lldb",
-            "request": "launch",
             "name": "Debug unit tests in executable 'mdns-reflector'",
+            "type": "lldb",
+            "request": "launch",
             "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--bin=mdns-reflector",
-                    "--package=mdns-reflector"
-                ],
-                "filter": {
-                    "name": "mdns-reflector",
-                    "kind": "bin"
-                }
+                "args": ["test", "--bin=mdns-reflector"]
             },
-            "args": [],
-            "cwd": "${workspaceFolder}",
             "env": {
                 "RUST_BACKTRACE": "1",
                 "RUST_LOG": "DEBUG,mdns_reflector=TRACE"
@@ -85,23 +56,12 @@
             "terminal": "integrated"
         },
         {
+            "name": "Debug integration test 'integration_tests'",
             "type": "lldb",
             "request": "launch",
-            "name": "Debug integration test 'integration_tests'",
             "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--test=integration_tests",
-                    "--package=mdns-reflector"
-                ],
-                "filter": {
-                    "name": "integration_tests",
-                    "kind": "test"
-                }
+                "args": ["test", "--test=integration_tests"]
             },
-            "args": [],
-            "cwd": "${workspaceFolder}",
             "env": {
                 "RUST_BACKTRACE": "1",
                 "RUST_LOG": "DEBUG,mdns_reflector=TRACE"
