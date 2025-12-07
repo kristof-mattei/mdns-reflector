@@ -1,10 +1,4 @@
-<<<<<<< HEAD
 absolute-paths-allowed-crates = ["clap", "std", "tokio", "tracing_subscriber"]
-||||||| c2dc841d
-absolute-paths-allowed-crates = ["std"]
-=======
-absolute-paths-allowed-crates = ["std"]
->>>>>>> upstream/main
 disallowed-methods = [
     # https://github.com/serde-rs/json/issues/160
     "serde_json::from_reader",
