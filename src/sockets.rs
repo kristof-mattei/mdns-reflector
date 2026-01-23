@@ -15,15 +15,15 @@ use crate::{MDNS_ADDR, MDNS_PORT, unix};
 
 #[derive(Debug)]
 pub struct InterfaceSocket {
-    /// interface name
+    /// interface name.
     pub name: String,
-    /// socket
+    /// socket.
     pub socket: UdpSocket,
-    /// interface address
+    /// interface address.
     pub address: Ipv4Addr,
-    /// interface mask
+    /// interface mask.
     pub mask: Ipv4Addr,
-    /// interface network (computed)
+    /// interface network (computed).
     pub network: Ipv4Addr,
 }
 
