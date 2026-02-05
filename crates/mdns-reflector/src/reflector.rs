@@ -18,15 +18,15 @@ pub async fn reflect(
     let mut buffer = vec![0_u8; PACKET_SIZE];
 
     loop {
-        let (recvsize, from_addr) = tokio::select! {
+        let (recv_size, from_addr) = tokio::select! {
             () = cancellation_token.cancelled() => {
                 break;
             },
             result = server_socket.recv_from(&mut buffer) => {
                 match result {
-                    Ok(ok) => ok,
-                    Err(err) => {
-                        event!(Level::ERROR, ?err, "recv()");
+                    Ok((recv_size, from_addr)) => (recv_size, from_addr),
+                    Err(error) => {
+                        event!(Level::ERROR, ?error, "recv()");
                         continue;
                     }
                 }
@@ -41,7 +41,7 @@ pub async fn reflect(
             continue;
         }
 
-        event!(Level::INFO, "data from={} size={}", from_addr, recvsize);
+        event!(Level::INFO, "data from={} size={}", from_addr, recv_size);
 
         for socket in &sockets {
             // do not repeat packet back to the same network from which it originated
@@ -60,21 +60,21 @@ pub async fn reflect(
             // repeat data
             match socket
                 .socket
-                .send_to(&buffer[0..recvsize], &BROADCAST_MDNS)
+                .send_to(&buffer[0..recv_size], &BROADCAST_MDNS)
                 .await
             {
                 Ok(sentsize) => {
-                    if sentsize != recvsize {
+                    if sentsize != recv_size {
                         event!(
                             Level::ERROR,
                             "send_packet size differs: sent={} actual={}",
-                            recvsize,
+                            recv_size,
                             sentsize
                         );
                     }
                 },
-                Err(err) => {
-                    event!(Level::ERROR, ?err, "send()");
+                Err(error) => {
+                    event!(Level::ERROR, ?error, "send()");
                 },
             }
         }
