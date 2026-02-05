@@ -1,0 +1,50 @@
+[package]
+name = "mdns-reflector"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+description.workspace = true
+license.workspace = true
+categories.workspace = true
+keywords.workspace = true
+repository.workspace = true
+include.workspace = true
+build = "src/build.rs"
+
+[features]
+default = []
+ip_pktinfo = []
+so_bindtodevice = []
+tokio-console = ["dep:console-subscriber"]
+
+[dependencies]
+clap = { version = "4.5.57", features = ["cargo", "derive", "string"] }
+color-eyre = "0.6.5"
+console-subscriber = { version = "0.5.0", optional = true }
+const_format = "0.2.35"
+libc = "0.2.180"
+mimalloc = { version = "0.1.48", features = ["v3"] }
+socket2 = { version = "0.6.2", features = ["all"] }
+syslog-tracing = "0.3.1"
+tokio = { version = "1.49.0", features = [
+    "macros",
+    "net",
+    "rt-multi-thread",
+    "signal",
+    "time",
+] }
+tokio-util = { version = "0.7.18", features = ["rt"] }
+tracing = "0.1.44"
+tracing-error = "0.2.1"
+tracing-subscriber = { version = "0.3.22", features = [
+    "env-filter",
+    "time",
+    "tracing-log",
+] }
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"
+
+[lints]
+workspace = true

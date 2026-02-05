@@ -162,12 +162,12 @@ fn main() -> Result<(), eyre::Report> {
         .enable_all()
         .build()?;
 
-    if let Err(err) = rt.block_on(start_tasks(
+    if let Err(error) = rt.block_on(start_tasks(
         cancellation_token,
         Arc::new(config),
         interfaces,
     )) {
-        event!(Level::ERROR, ?err);
+        event!(Level::ERROR, ?error);
     }
 
     Ok(())
@@ -181,10 +181,10 @@ async fn start_tasks(
     // create receiving socket
     let server_socket = match create_recv_sock() {
         Ok(server_socket) => server_socket,
-        Err(err) => {
+        Err(error) => {
             event!(
                 Level::ERROR,
-                ?err,
+                ?error,
                 "Unable to create send socket on interface"
             );
 
@@ -198,10 +198,10 @@ async fn start_tasks(
     for interface in interfaces {
         let send_socket = match create_send_sock(&server_socket, interface) {
             Ok(send_socket) => send_socket,
-            Err(err) => {
+            Err(error) => {
                 event!(
                     Level::ERROR,
-                    ?err,
+                    ?error,
                     "Unable to create send socket on interface"
                 );
 
@@ -272,10 +272,10 @@ async fn start_tasks(
             pid == unsafe { getpid() }
         }
     {
-        if let Err(err) = remove_file(&config.pid_file) {
+        if let Err(error) = remove_file(&config.pid_file) {
             event!(
                 Level::ERROR,
-                ?err,
+                ?error,
                 pid_file = %config.pid_file.display(),
                 "Failed to remove pid_file, manual deletion required"
             );
@@ -295,8 +295,8 @@ fn daemonize(config: &Config) {
     let pid: pid_t = unsafe { fork() };
 
     if pid < 0 {
-        let err = std::io::Error::last_os_error();
-        event!(Level::ERROR, ?err, "fork()");
+        let error = std::io::Error::last_os_error();
+        event!(Level::ERROR, ?error, "fork()");
 
         process::exit(1);
     }
@@ -353,10 +353,10 @@ fn daemonize(config: &Config) {
 
         #[expect(clippy::exit, reason = "Daemonize failed, cleanup unneeded")]
         process::exit(1);
-    } else if let Err(err) = write_pidfile(config) {
+    } else if let Err(error) = write_pidfile(config) {
         event!(
             Level::ERROR,
-            ?err,
+            ?error,
             "unable to write pid file {:?}",
             config.pid_file
         );

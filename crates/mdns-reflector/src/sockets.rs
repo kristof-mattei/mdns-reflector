@@ -138,8 +138,9 @@ fn get_interface_details(ifname: &str) -> Result<(Ipv4Addr, Ipv4Addr), eyre::Rep
     // SAFETY: all zeroes is valid for `ifreq`
     let mut ifr = unsafe { MaybeUninit::<ifreq>::zeroed().assume_init() };
 
-    let c_ifname = CString::new(ifname)
-        .map_err(|err| eyre::Error::new(err).with_note(|| "Failed to convert ifname to CString"))?;
+    let c_ifname = CString::new(ifname).map_err(|error| {
+        eyre::Error::new(error).with_note(|| "Failed to convert ifname to CString")
+    })?;
 
     let len = std::cmp::min(
         c_ifname.as_bytes_with_nul().len(),
