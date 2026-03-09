@@ -58,7 +58,7 @@ jobs:
           git push origin "${TAG}"
 
       - name: Install git-cliff to generate changelog
-        uses: taiki-e/install-action@385db9cc6bf65d19775b02084a4b698eaca9a4f2 # v2.68.19
+        uses: taiki-e/install-action@a37010ded18ff788be4440302bd6830b1ae50d8b # v2.68.25
         with:
           tool: git-cliff
 
