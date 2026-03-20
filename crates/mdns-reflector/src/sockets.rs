@@ -1,5 +1,4 @@
 use std::ffi::CString;
-use std::mem::MaybeUninit;
 use std::net::{Ipv4Addr, SocketAddrV4};
 use std::os::fd::AsRawFd as _;
 use std::ptr::addr_of;
@@ -136,7 +135,7 @@ fn get_interface_details(ifname: &str) -> Result<(Ipv4Addr, Ipv4Addr), eyre::Rep
     .wrap_err("send socket()")?;
 
     // SAFETY: all zeroes is valid for `ifreq`
-    let mut ifr = unsafe { MaybeUninit::<ifreq>::zeroed().assume_init() };
+    let mut ifr = unsafe { std::mem::zeroed::<ifreq>() };
 
     let c_ifname = CString::new(ifname).map_err(|error| {
         eyre::Error::new(error).with_note(|| "Failed to convert ifname to CString")
