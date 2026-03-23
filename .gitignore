@@ -11,3 +11,5 @@ profiling/
 
 # build of the c version
 /mdns-repeater
+
+.env
