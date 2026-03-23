@@ -46,8 +46,9 @@
             "type": "lldb",
             "request": "launch",
             "cargo": {
-                "args": ["test", "--bin=mdns-reflector"]
+                "args": ["test", "--no-run", "--bin=mdns-reflector"]
             },
+            "args": [],
             "env": {
                 "RUST_BACKTRACE": "1",
                 "RUST_LOG": "DEBUG,mdns_reflector=TRACE"
@@ -60,8 +61,9 @@
             "type": "lldb",
             "request": "launch",
             "cargo": {
-                "args": ["test", "--test=integration_tests"]
+                "args": ["test", "--no-run", "--test=integration_tests"]
             },
+            "args": [],
             "env": {
                 "RUST_BACKTRACE": "1",
                 "RUST_LOG": "DEBUG,mdns_reflector=TRACE"
