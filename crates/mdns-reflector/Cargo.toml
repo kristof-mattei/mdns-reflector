@@ -27,7 +27,7 @@ libc = "0.2.185"
 mimalloc = { version = "0.1.48", features = ["v3"] }
 socket2 = { version = "0.6.3", features = ["all"] }
 syslog-tracing = "0.3.1"
-tokio = { version = "1.51.1", features = [
+tokio = { version = "1.52.0", features = [
     "macros",
     "net",
     "rt-multi-thread",
