@@ -1,16 +1,17 @@
-use std::os::fd::AsRawFd as _;
+use std::os::fd::{AsFd, AsRawFd as _};
 
 use libc::{c_int, socklen_t};
-use socket2::Socket;
+
+use crate::utils::u32_to_usize;
 
 /// Helper macro to execute a system call that returns an `io::Result`.
 macro_rules! syscall {
-    ($fn: ident ( $($arg: expr),* $(,)* ) ) => {{
-        #[expect(clippy::allow_attributes, reason = "Not all calls mirrored are unsafe")]
-        #[allow(unused_unsafe, reason = "Some calls are unsafe")]
+    ($fn: ident ( $($arg: expr),* $(,)* ) , $err: literal) => {{
+        #[expect(clippy::allow_attributes, reason = "Not all libc calls are unsafe")]
+        #[allow(unused_unsafe, reason = "libc function can be unsafe")]
         // SAFETY: libc call
         let res = unsafe { libc::$fn($($arg, )*) };
-        if res == -1 {
+        if res == $err {
             Err(std::io::Error::last_os_error())
         } else {
             Ok(res)
@@ -19,23 +20,33 @@ macro_rules! syscall {
 }
 
 /// Caller must ensure `T` is the correct type for `opt` and `val`.
-#[expect(
-    clippy::needless_pass_by_value,
-    reason = "We need a pointer TO the value"
-)]
-pub unsafe fn setsockopt<T>(
-    fd: &Socket,
-    opt: libc::c_int,
+pub unsafe fn setsockopt<F: AsFd, T>(
+    fd: F,
+    opt: c_int,
     val: c_int,
-    payload: T,
+    payload: &T,
 ) -> std::io::Result<()> {
-    let payload = (&raw const payload).cast::<libc::c_void>();
+    let payload = (&raw const *payload).cast();
 
     #[expect(
+        clippy::as_conversions,
         clippy::cast_possible_truncation,
-        reason = "It this doesn't fit we got bigger problems"
+        reason = "Compile-time assert guarantees no truncation, `as` is required until TryInto is available in `const`"
     )]
-    let size = std::mem::size_of::<T>() as socklen_t;
+    let length: libc::socklen_t = const {
+        let size = std::mem::size_of::<T>();
 
-    syscall!(setsockopt(fd.as_raw_fd(), opt, val, payload, size)).map(|_| ())
+        assert!(
+            size <= u32_to_usize(socklen_t::MAX),
+            "Payload type T is too large to fit in a libc::socklen_t"
+        );
+
+        size as libc::socklen_t
+    };
+
+    syscall!(
+        setsockopt(fd.as_fd().as_raw_fd(), opt, val, payload, length),
+        -1
+    )
+    .map(|_| ())
 }
