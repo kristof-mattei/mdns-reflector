@@ -51,7 +51,7 @@ pub fn create_recv_sock() -> Result<UdpSocket, eyre::Error> {
     // do we support any OS that doesn't have `IP_PKTINFO?`
     // SAFETY: libc call
     unsafe {
-        unix::setsockopt(&socket, SOL_IP, IP_PKTINFO, true)
+        unix::setsockopt(&socket, SOL_IP, IP_PKTINFO, &true)
             .wrap_err("recv setsockopt(IP_PKTINFO)")?;
     }
 

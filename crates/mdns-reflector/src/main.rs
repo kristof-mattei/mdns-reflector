@@ -4,6 +4,7 @@ mod reflector;
 mod signal_handlers;
 mod sockets;
 mod unix;
+mod utils;
 
 use std::env::{self, VarError};
 use std::ffi::CString;
