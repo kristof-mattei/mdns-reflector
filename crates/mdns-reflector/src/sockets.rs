@@ -71,40 +71,40 @@ pub fn create_send_sock(
         // IPPROTO_IP
         None,
     )
-    .wrap_err_with(|| format!("send socket() failed on {}", &ifname))?;
+    .wrap_err_with(|| format!("send socket() failed on {}", ifname))?;
 
     // compute network (address & mask)
     let interface_network = interface_address & interface_mask;
 
     socket
         .set_nonblocking(true)
-        .wrap_err_with(|| format!("send setsockopt(SO_NONBLOCK) failed on {}", &ifname))?;
+        .wrap_err_with(|| format!("send setsockopt(SO_NONBLOCK) failed on {}", ifname))?;
 
     socket
         .set_reuse_address(true)
-        .wrap_err_with(|| format!("send setsockopt(SO_REUSEADDR) failed on {}", &ifname))?;
+        .wrap_err_with(|| format!("send setsockopt(SO_REUSEADDR) failed on {}", ifname))?;
 
     // do we support any OS that doesn't have `SO_BINDTODEVICE?`
     socket
         .bind_device(Some(ifname.as_bytes()))
-        .wrap_err_with(|| format!("send setsockopt(SO_BINDTODEVICE) failed on {}", &ifname))?;
+        .wrap_err_with(|| format!("send setsockopt(SO_BINDTODEVICE) failed on {}", ifname))?;
 
     // bind to an address
     let server_addr = SocketAddrV4::new(interface_address, MDNS_PORT);
 
     socket
         .bind(&server_addr.into())
-        .wrap_err_with(|| format!("send bind() failed on {}", &ifname))?;
+        .wrap_err_with(|| format!("send bind() failed on {}", ifname))?;
 
     // add membership to receiving socket
     recv_sock
         .join_multicast_v4(MDNS_ADDR, interface_address)
-        .wrap_err_with(|| format!("recv setsockopt(IP_ADD_MEMBERSHIP) failed on {}", &ifname))?;
+        .wrap_err_with(|| format!("recv setsockopt(IP_ADD_MEMBERSHIP) failed on {}", ifname))?;
 
     // enable loopback in case someone else needs the data
     socket
         .set_multicast_loop_v4(true)
-        .wrap_err_with(|| format!("send setsockopt()SO_BINDTODEVICE failed on {}", &ifname))?;
+        .wrap_err_with(|| format!("send setsockopt()SO_BINDTODEVICE failed on {}", ifname))?;
 
     let interface_socket = InterfaceSocket {
         name: ifname,
