@@ -45,7 +45,6 @@ nonoverlapping
 nvmrc
 pathbuf
 pidfile
-pids
 pktinfo
 postprocessors
 prereleased
@@ -71,7 +70,6 @@ sockaddr
 socklen
 startswith
 striptags
-succesful
 syscall
 taiki
 TARGETPLATFORMDASH

@@ -365,7 +365,7 @@ fn daemonize(config: &Config) {
         #[expect(clippy::exit, reason = "Daemonize failed, cleanup unneeded")]
         process::exit(1);
     } else {
-        // Daemonize succesful
+        // Daemonize successful
     }
 }
 
