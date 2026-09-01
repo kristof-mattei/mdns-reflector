@@ -1,4 +1,3 @@
-adduser
 appgroup
 appuser
 artipacked
@@ -42,7 +41,6 @@ nextest
 nonblock
 nonblocking
 nonoverlapping
-nvmrc
 pathbuf
 pidfile
 pktinfo
@@ -55,6 +53,7 @@ recvsize
 retag
 retagging
 reuseaddr
+rhysd
 rtnetlink
 rustflags
 samply
