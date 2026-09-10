@@ -1,3 +1,4 @@
+allgreen
 appgroup
 appuser
 artipacked
@@ -21,9 +22,9 @@ endmacro
 errorlens
 getpid
 grcov
+headgreen
 hfvp
 hgversion
-hubot
 idents
 ifname
 ifnamsiz
