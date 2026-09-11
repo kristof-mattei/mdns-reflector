@@ -45,6 +45,7 @@ nonoverlapping
 oras
 pathbuf
 pidfile
+pkgs
 pktinfo
 postprocessors
 prereleased
@@ -81,6 +82,7 @@ targetplatformdash
 telem
 tera
 topo
+tostring
 trixie
 trunc
 uninlined
