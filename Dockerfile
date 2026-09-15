@@ -114,7 +114,7 @@ COPY <<EOF /etc/group
 appgroup:x:900:appuser
 EOF
 
-COPY --from=rust-build /output/bin/${APPLICATION_NAME} /app/rust-seed
+COPY --from=rust-build /output/bin/${APPLICATION_NAME} /app/mdns-reflector
 
 USER appuser
 
@@ -122,4 +122,4 @@ ENV RUST_BACKTRACE=full
 
 WORKDIR /app
 
-ENTRYPOINT ["/app/rust-seed"]
+ENTRYPOINT ["/app/mdns-reflector"]
