@@ -18,13 +18,7 @@
                 "eth10"
                 // "enp4s0",
                 // "br-611646b6fc6e"
-            ],
-            "env": {
-                "RUST_BACKTRACE": "1",
-                "RUST_LOG": "DEBUG,mdns_reflector=TRACE"
-            },
-            "internalConsoleOptions": "neverOpen",
-            "terminal": "integrated"
+            ]
         },
         {
             "name": "Debug executable 'mdns-reflector' --help",
@@ -33,13 +27,7 @@
             "cargo": {
                 "args": ["run", "--bin=mdns-reflector"]
             },
-            "args": ["-h"],
-            "env": {
-                "RUST_BACKTRACE": "1",
-                "RUST_LOG": "DEBUG,mdns_reflector=TRACE"
-            },
-            "internalConsoleOptions": "neverOpen",
-            "terminal": "integrated"
+            "args": ["-h"]
         },
         {
             "name": "Debug unit tests in executable 'mdns-reflector'",
@@ -48,13 +36,7 @@
             "cargo": {
                 "args": ["test", "--no-run", "--bin=mdns-reflector"]
             },
-            "args": [],
-            "env": {
-                "RUST_BACKTRACE": "1",
-                "RUST_LOG": "DEBUG,mdns_reflector=TRACE"
-            },
-            "internalConsoleOptions": "neverOpen",
-            "terminal": "integrated"
+            "args": []
         },
         {
             "name": "Debug integration test 'integration_tests'",
@@ -63,13 +45,7 @@
             "cargo": {
                 "args": ["test", "--no-run", "--test=integration_tests"]
             },
-            "args": [],
-            "env": {
-                "RUST_BACKTRACE": "1",
-                "RUST_LOG": "DEBUG,mdns_reflector=TRACE"
-            },
-            "internalConsoleOptions": "neverOpen",
-            "terminal": "integrated"
+            "args": []
         }
     ]
 }
