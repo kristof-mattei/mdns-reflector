@@ -11,7 +11,6 @@ cliffignore
 concatcp
 ctarget
 cttc
-cves
 daemonizing
 darell
 dgram
@@ -48,7 +47,6 @@ pidfile
 pkgs
 pktinfo
 postprocessors
-prereleased
 profraw
 pyflakes
 rawfile
