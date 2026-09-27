@@ -32,7 +32,7 @@ fn build_clap_matcher() -> Command {
         )
         .disable_help_flag(true)
         .disable_version_flag(true)
-        .color(clap::ColorChoice::Always)
+        .color(clap::ColorChoice::Auto)
         .arg(
             Arg::new("foreground")
                 .short('f')
