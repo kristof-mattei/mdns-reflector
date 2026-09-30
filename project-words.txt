@@ -35,6 +35,7 @@ lintian
 mattei
 mdns
 mimalloc
+mkhl
 monomorphization
 multiplatform
 nextest
